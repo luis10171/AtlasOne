@@ -96,9 +96,7 @@ Keep `AI_ENABLED=False` for the offline demo. To exercise the provider integrati
 
 Enabling this sends academic context and messages to Google. Use fictional data. Provider credentials, availability, translation quality, and speech generation are not verified by the offline test suite; HTTP interactions are mocked. Text errors fall back to local recommendations.
 
-If an attempted advisor request fails, that reply gets an "AI service unavailable" notice. Successful replies, deliberately disabled AI, and a missing API key do not trigger this failure notice. Speech failures are reported separately from text-generation failures.
-
-The notice is rendered in the browser from an `api_failed` response flag, never appended to the answer or sent in Gemini's conversation context. Chat sessions use a new history key to leave behind older conversations that contained embedded offline warnings; accounts and academic records are unaffected.
+If an attempted advisor request fails, that reply gets an "AI service unavailable" notice. Successful replies, deliberately disabled AI, and a missing API key do not trigger this failure notice. Speech failures are reported separately from text-generation failures. The notice is rendered in the browser from an `api_failed` response flag, never appended to the answer or sent in Gemini's conversation context. 
 
 The explicit connection test `python -m Pathway.utils.api_tester` makes a provider request using a generic prompt with no student records. It may consume quota.
 
@@ -110,4 +108,4 @@ Parent and counselor accounts must be provisioned by staff. For manual local adm
 
 PDF import supports a particular five-column table layout, not arbitrary transcripts or OCR. Its size/page limits do not make parsing untrusted documents safe for public hosting.
 
-Read [security and known limitations](SECURITY.md), [the code review](docs/code-review.md), and [the GitHub publication guide](docs/publishing.md).
+Read [security and known limitations](SECURITY.md).
