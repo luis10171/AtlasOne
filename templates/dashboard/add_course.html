@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Course</title>
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background: #f4f6f9;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 60px auto;
+            background: white;
+            padding: 35px;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            color: #1e3c72;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: 600;
+            display: block;
+            margin-top: 15px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 6px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        .btn {
+            margin-top: 20px;
+            width: 100%;
+            background: #1e3c72;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: #2a5298;
+        }
+
+        .error {
+            color: #b00020;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .back {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .back a {
+            color: #1e3c72;
+            text-decoration: none;
+        }
+
+        .course-row {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+
+        .spinner {
+            display: none;
+            margin: 15px auto;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #1e3c72;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="error">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <h2>Add Course to Transcript</h2>
+    {% if student %}
+        <p><strong>Student:</strong> {{ student.firstName }} {{ student.lastName }}</p>
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+
+        {% for field in form %}
+            <label>{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+                <div class="error">{{ field.errors|striptags }}</div>
+            {% endif %}
+        {% endfor %}
+
+        <button class="btn">Add Course</button>
+    </form>
+
+    <div class="back">
+        {% if student %}
+            <a href="{% url 'counselor_student_profile' student.id %}">&larr; Back to Student Profile</a>
+        {% else %}
+            <a href="{% url 'dashboard' %}">&larr; Back to Dashboard</a>
+        {% endif %}
+    </div>
+
+    <hr>
+
+    <h3>Upload Transcript PDF</h3>
+
+    <form method="POST" enctype="multipart/form-data" id="pdf-upload-form">
+        {% csrf_token %}
+        <input type="file" name="transcript_pdf" accept="application/pdf" required>
+        <button type="submit" name="upload_pdf" class="btn">
+            Upload PDF Transcript
+        </button>
+        <div class="spinner" id="upload-spinner"></div>
+    </form>
+
+    {% if formset %}
+        <hr>
+        <h2>Review & Confirm Transcript Entries</h2>
+
+        {% if unmatched_courses %}
+            <div class="error">
+                Some parsed course names were not auto-matched and were removed from the confirmation list.
+            </div>
+        {% endif %}
+
+        {% if formset.non_form_errors %}
+            <div class="error">{{ formset.non_form_errors|striptags }}</div>
+        {% endif %}
+
+        <form method="POST" id="pdf-save-form">
+            {% csrf_token %}
+            {{ formset.management_form }}
+
+            <div id="form-container">
+                {% for form in formset %}
+                    <div class="course-row">
+                        {{ form.id }}
+                        {{ form.course.label }} {{ form.course }}
+                        {% if form.course.errors %}
+                            <div class="error">{{ form.course.errors|striptags }}</div>
+                        {% endif %}
+
+                        {{ form.grade.label }} {{ form.grade }}
+                        {% if form.grade.errors %}
+                            <div class="error">{{ form.grade.errors|striptags }}</div>
+                        {% endif %}
+
+                        {{ form.creditsEarned.label }} {{ form.creditsEarned }}
+                        {% if form.creditsEarned.errors %}
+                            <div class="error">{{ form.creditsEarned.errors|striptags }}</div>
+                        {% endif %}
+
+                        {{ form.gradeTaken.label }} {{ form.gradeTaken }}
+                        {% if form.gradeTaken.errors %}
+                            <div class="error">{{ form.gradeTaken.errors|striptags }}</div>
+                        {% endif %}
+
+                        {% if form.non_field_errors %}
+                            <div class="error">{{ form.non_field_errors|striptags }}</div>
+                        {% endif %}
+                        {{ form.DELETE }} Remove
+                    </div>
+                {% endfor %}
+            </div>
+
+            <button type="submit" name="save_pdf_courses" class="btn">
+                Save All Courses
+            </button>
+
+            <div class="spinner" id="save-spinner"></div>
+        </form>
+    {% endif %}
+
+</div>
+
+<script>
+    const uploadForm = document.getElementById("pdf-upload-form");
+    if (uploadForm) {
+        uploadForm.addEventListener("submit", function() {
+            document.getElementById("upload-spinner").style.display = "block";
+        });
+    }
+
+    const saveForm = document.getElementById("pdf-save-form");
+    if (saveForm) {
+        saveForm.addEventListener("submit", function() {
+            document.getElementById("save-spinner").style.display = "block";
+        });
+    }
+</script>
+
+</body>
+</html>

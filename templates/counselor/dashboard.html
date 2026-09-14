@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Counselor Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", sans-serif;
+            background: #f2f6fc;
+            color: #1d2d45;
+        }
+        .nav {
+            background: #0f3e60;
+            color: white;
+            padding: 16px 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav form button {
+            background: white;
+            color: #0f3e60;
+            border: none;
+            border-radius: 6px;
+            padding: 7px 11px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .container {
+            max-width: 1250px;
+            margin: 20px auto;
+            padding: 0 16px 24px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .stat, .card {
+            background: white;
+            border: 1px solid #d6e0ee;
+            border-radius: 10px;
+            padding: 14px;
+            box-shadow: 0 4px 13px rgba(0, 0, 0, 0.05);
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 14px;
+        }
+        .request {
+            border: 1px solid #e0e7f2;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        textarea {
+            width: 100%;
+            border-radius: 6px;
+            border: 1px solid #c4d1e4;
+            padding: 9px;
+            margin: 7px 0;
+            font-family: inherit;
+        }
+        .btn {
+            border: none;
+            border-radius: 6px;
+            padding: 8px 11px;
+            cursor: pointer;
+            color: white;
+            margin-right: 8px;
+        }
+        .approve { background: #1f7a39; }
+        .deny { background: #ad2a2a; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border-bottom: 1px solid #e1e7f2;
+            text-align: left;
+            padding: 9px 8px;
+            font-size: 14px;
+        }
+        .alert {
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #e6f6ea;
+            color: #1f6a34;
+            border: 1px solid #b7e2c2;
+        }
+        .warn {
+            background: #fff3dd;
+            border-color: #f2d4a0;
+            color: #845900;
+        }
+        @media (max-width: 980px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <div>
+            <strong>Guidance Counselor Dashboard</strong><br>
+            <small>{{ counselor.firstName }} {{ counselor.lastName }}</small>
+        </div>
+        <form method="POST" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit">Logout</button>
+        </form>
+    </div>
+    <div class="container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="stats">
+            <div class="stat"><strong>Pending Requests</strong><br><span style="font-size:28px;">{{ pending_count }}</span></div>
+            <div class="stat"><strong>Approved Requests</strong><br><span style="font-size:28px;">{{ approved_count }}</span></div>
+            <div class="stat"><strong>Denied Requests</strong><br><span style="font-size:28px;">{{ denied_count }}</span></div>
+        </div>
+
+        <div class="layout">
+            <div class="card">
+                <h3>Pending Course Requests</h3>
+                {% for request_item in pending_requests %}
+                    <div class="request">
+                        <strong>{{ request_item.student.firstName }} {{ request_item.student.lastName }}</strong>
+                        <small> (Grade {{ request_item.student.gradeLevel }})</small><br>
+                        <small>{{ request_item.course.name }} - {{ request_item.course.subject.name }} | Planned for grade {{ request_item.requested_for_grade }}</small><br>
+                        {% if request_item.student_note %}
+                            <small>Student note: {{ request_item.student_note }}</small><br>
+                        {% endif %}
+                        <a href="{% url 'counselor_student_profile' request_item.student.id %}">Open student profile</a>
+                        <form method="POST" action="{% url 'review_course_request' request_item.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{% url 'counselor_dashboard' %}">
+                            <textarea name="counselor_note" placeholder="Optional note for the student"></textarea>
+                            <button class="btn approve" type="submit" name="decision" value="approve">Approve</button>
+                            <button class="btn deny" type="submit" name="decision" value="deny">Deny</button>
+                        </form>
+                    </div>
+                {% empty %}
+                    <div class="alert warn">No pending requests right now.</div>
+                {% endfor %}
+            </div>
+
+            <div class="card">
+                <h3>Student Profiles</h3>
+                <table>
+                    <tr>
+                        <th>Name</th>
+                        <th>Grade</th>
+                        <th>District</th>
+                    </tr>
+                    {% for student in students %}
+                        <tr>
+                            <td><a href="{% url 'counselor_student_profile' student.id %}">{{ student.firstName }} {{ student.lastName }}</a></td>
+                            <td>{{ student.gradeLevel }}</td>
+                            <td>{% if student.district %}{{ student.district.name }}{% else %}-{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+
+                <h3 style="margin-top:16px;">Your Message Threads</h3>
+                {% for thread in conversation_threads %}
+                    <div class="request">
+                        <a href="{% url 'counselor_messages_with_student' thread.student.id %}">
+                            {{ thread.student.firstName }} {{ thread.student.lastName }}
+                        </a><br>
+                        <small>Last update: {{ thread.updated_at }}</small>
+                    </div>
+                {% empty %}
+                    <p>No message threads yet.</p>
+                {% endfor %}
+                <a href="{% url 'counselor_messages' %}">Open Messaging Center</a>
+
+                <h3 style="margin-top:16px;">Parent Threads ({{ parent_thread_count }})</h3>
+                {% for thread in parent_conversation_threads %}
+                    <div class="request">
+                        <a href="{% url 'counselor_parent_messages_with_conversation' thread.id %}">
+                            {{ thread.parent.firstName }} {{ thread.parent.lastName }}
+                        </a><br>
+                        <small>Student: {{ thread.student.firstName }} {{ thread.student.lastName }}</small><br>
+                        <small>Last update: {{ thread.updated_at }}</small>
+                    </div>
+                {% empty %}
+                    <p>No parent threads yet.</p>
+                {% endfor %}
+                <a href="{% url 'counselor_parent_messages' %}">Open Parent Messaging Center</a>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+            <h3>Recently Reviewed Requests</h3>
+            <table>
+                <tr>
+                    <th>Student</th>
+                    <th>Course</th>
+                    <th>Status</th>
+                    <th>Reviewed By</th>
+                </tr>
+                {% for request_item in reviewed_requests %}
+                    <tr>
+                        <td>{{ request_item.student.firstName }} {{ request_item.student.lastName }}</td>
+                        <td>{{ request_item.course.name }}</td>
+                        <td>{{ request_item.get_status_display }}</td>
+                        <td>
+                            {% if request_item.reviewed_by %}
+                                {{ request_item.reviewed_by.firstName }} {{ request_item.reviewed_by.lastName }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4">No reviewed requests yet.</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+</body>
+</html>

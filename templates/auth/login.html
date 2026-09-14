@@ -1,0 +1,15 @@
+{% extends "auth/base.html" %}
+{% block title %}Sign in | AtlasOne{% endblock %}
+{% block content %}
+    <h1>Welcome back</h1>
+    <p>Review progress, plan next year, and stay connected with your school.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Sign in</button>
+    </form>
+    <div class="footer">
+        <p>New student? <a href="{% url 'signup' %}">Create an account</a></p>
+        <p>Parents and counselors: contact school staff for an account.</p>
+    </div>
+{% endblock %}

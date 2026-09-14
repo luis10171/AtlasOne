@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parent Counselor Messages</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", sans-serif;
+            background: #f3f7fc;
+        }
+        .nav {
+            background: #15556f;
+            color: #fff;
+            padding: 16px 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav a {
+            color: #fff;
+            text-decoration: none;
+            border: 1px solid rgba(255, 255, 255, 0.65);
+            border-radius: 7px;
+            padding: 7px 11px;
+            margin-left: 8px;
+        }
+        .layout {
+            max-width: 1120px;
+            margin: 20px auto;
+            padding: 0 16px 20px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 14px;
+        }
+        .panel {
+            background: #fff;
+            border: 1px solid #d7e1ef;
+            border-radius: 10px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+        }
+        .left {
+            padding: 14px;
+        }
+        .left a {
+            display: block;
+            border: 1px solid #dce4f1;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            text-decoration: none;
+            color: #1b2c45;
+        }
+        .left a.active {
+            background: #ebf3ff;
+            border-color: #bdd0ee;
+        }
+        .chat {
+            display: flex;
+            flex-direction: column;
+            min-height: 620px;
+        }
+        .chat-header {
+            border-bottom: 1px solid #dde6f2;
+            padding: 14px;
+        }
+        .chat-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px;
+            background: #f9fbff;
+        }
+        .msg {
+            border: 1px solid #d9e2ef;
+            border-radius: 8px;
+            padding: 9px 11px;
+            margin-bottom: 9px;
+            max-width: 85%;
+            white-space: pre-wrap;
+        }
+        .mine {
+            margin-left: auto;
+            background: #e3efff;
+            border-color: #c7dbff;
+        }
+        .composer {
+            border-top: 1px solid #dde6f2;
+            padding: 12px;
+        }
+        textarea {
+            width: 100%;
+            border: 1px solid #becce0;
+            border-radius: 7px;
+            padding: 10px;
+            font-family: inherit;
+            margin-bottom: 8px;
+        }
+        button {
+            background: #15556f;
+            color: #fff;
+            border: none;
+            border-radius: 7px;
+            padding: 9px 14px;
+            cursor: pointer;
+        }
+        .alert {
+            background: #fdecea;
+            color: #611a15;
+            border: 1px solid #f5c6cb;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <strong>Message Your Student's Counselor</strong>
+        <div>
+            <a href="{% url 'parent_dashboard' %}">Back to Parent Dashboard</a>
+            <a href="{% url 'parent_ai_chatbot' %}">Parent AI Assistant</a>
+        </div>
+    </div>
+
+    <div class="layout">
+        <div class="panel left">
+            <h3>Your Students</h3>
+            {% for student in students %}
+                <a href="{% url 'parent_messages_with_student' student.id %}" class="{% if selected_student and selected_student.id == student.id %}active{% endif %}">
+                    <strong>{{ student.firstName }} {{ student.lastName }}</strong><br>
+                    <small>Grade {{ student.gradeLevel }}</small>
+                </a>
+            {% empty %}
+                <p>No linked students.</p>
+            {% endfor %}
+        </div>
+
+        <div class="panel chat">
+            <div class="chat-header">
+                {% if selected_student %}
+                    <h3 style="margin:0;">{{ selected_student.firstName }} {{ selected_student.lastName }}</h3>
+                    {% if assigned_counselor %}
+                        <small>Counselor: {{ assigned_counselor.firstName }} {{ assigned_counselor.lastName }}</small>
+                    {% else %}
+                        <small>No counselor assigned yet.</small>
+                    {% endif %}
+                {% else %}
+                    <h3 style="margin:0;">No student selected</h3>
+                {% endif %}
+            </div>
+            <div class="chat-body">
+                {% for message in conversation_messages %}
+                    <div class="msg {% if message.sender_id == parent.user_id %}mine{% endif %}">
+                        <strong>{{ message.sender.username }}</strong><br>
+                        {{ message.body }}<br>
+                        <small>{{ message.created_at }}</small>
+                    </div>
+                {% empty %}
+                    <p>No messages yet in this conversation.</p>
+                {% endfor %}
+            </div>
+            <div class="composer">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+                {% if conversation %}
+                    <form method="POST">
+                        {% csrf_token %}
+                        {{ form.body }}
+                        {% if form.errors %}
+                            <div class="alert">{{ form.errors|striptags }}</div>
+                        {% endif %}
+                        <button type="submit">Send Message</button>
+                    </form>
+                {% else %}
+                    <p>Select a student with an assigned counselor to start messaging.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

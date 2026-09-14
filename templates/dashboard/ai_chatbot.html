@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AtlasOne AI Advisor</title>
+    <style>
+        :root {
+            --bg: #f4f6f9;
+            --panel: #ffffff;
+            --ink: #1b2a41;
+            --accent: #1e3c72;
+            --accent-dark: #17325f;
+            --accent-mid: #2a5298;
+            --muted: #4f6282;
+            --line: #d4ddea;
+            --warn: #b02a37;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: radial-gradient(circle at top right, #e8efff, var(--bg) 45%);
+            color: var(--ink);
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 24px;
+            background: linear-gradient(90deg, var(--accent-dark), var(--accent));
+            color: #ffffff;
+        }
+
+        .nav a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 700;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            padding: 7px 12px;
+            border-radius: 8px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 330px 1fr;
+            gap: 18px;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 16px 20px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .left-panel {
+            padding: 16px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+
+        .left-panel h3 {
+            margin: 8px 0 12px;
+        }
+
+        .chip {
+            display: inline-block;
+            background: #eaf1ff;
+            border: 1px solid #c5d6f6;
+            border-radius: 999px;
+            padding: 5px 10px;
+            margin: 4px 6px 4px 0;
+            font-size: 12px;
+            color: #1e3c72;
+        }
+
+        .list-item {
+            border: 1px solid #e2e8f2;
+            border-radius: 10px;
+            padding: 10px;
+            margin: 8px 0;
+            background: #ffffff;
+        }
+
+        .list-item p {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .gap {
+            border-left: 4px solid var(--warn);
+            background: #fff7f8;
+        }
+
+        .chat-panel {
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 120px);
+            max-height: calc(100vh - 120px);
+        }
+
+        .chat-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .chat-header h2 {
+            margin: 0;
+        }
+
+        .chat-header p {
+            color: var(--muted);
+            margin: 6px 0 0;
+        }
+
+        .quick-prompts {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .quick-prompts button {
+            border: 1px solid #bfd1f0;
+            background: #f5f8ff;
+            color: #1e3c72;
+            border-radius: 999px;
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .quick-prompts button:hover {
+            background: #e9f0ff;
+        }
+
+        .messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: linear-gradient(180deg, #f9fbff, #f2f6ff);
+        }
+
+        .message {
+            max-width: 78%;
+            padding: 10px 12px;
+            border-radius: 12px;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+
+        .message.user {
+            margin-left: auto;
+            background: #dfeaff;
+            border: 1px solid #c2d4f7;
+        }
+
+        .message.assistant {
+            background: #ffffff;
+            border: 1px solid #d7e1f2;
+        }
+
+        .composer {
+            border-top: 1px solid var(--line);
+            padding: 12px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .composer textarea {
+            flex: 1;
+            resize: none;
+            min-height: 52px;
+            max-height: 130px;
+            border-radius: 10px;
+            border: 1px solid #c2cfe6;
+            padding: 10px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .composer textarea:focus {
+            outline: 2px solid rgba(42, 82, 152, 0.2);
+            border-color: var(--accent-mid);
+        }
+
+        .composer button {
+            width: 125px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-mid));
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .composer button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 12px;
+            margin: 0 12px 12px;
+        }
+
+        @media (max-width: 960px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            .left-panel,
+            .chat-panel {
+                max-height: none;
+                min-height: 520px;
+            }
+            .message {
+                max-width: 92%;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="nav">
+    <div><strong>AtlasOne AI Advisor</strong></div>
+    <a href="{% url 'dashboard' %}">Back to Dashboard</a>
+</div>
+
+<div class="layout">
+    <div class="panel left-panel">
+        <h3>Student Snapshot</h3>
+        <div class="chip">{{ snapshot.student_profile.name }}</div>
+        <div class="chip">Grade {{ snapshot.student_profile.grade_level }}</div>
+        <div class="chip">{{ snapshot.student_profile.district }}</div>
+        <div class="chip">Class of {{ snapshot.student_profile.graduation_year }}</div>
+
+        <h3>Recommended Next Courses</h3>
+        {% for course in snapshot.recommended_courses|slice:":6" %}
+            <div class="list-item">
+                <strong>
+                    {{ course.name }}
+                    {% if course.is_core_class %}
+                        <span class="chip">Core</span>
+                    {% endif %}
+                </strong>
+                <p>{{ course.subject }} | {{ course.credit_value }} credits</p>
+            </div>
+        {% empty %}
+            <p>No recommendations yet. Add transcript entries for better guidance.</p>
+        {% endfor %}
+
+        <h3>Requirement Gaps</h3>
+        {% for requirement in snapshot.graduation_requirements %}
+            {% if requirement.remaining_credits > 0 %}
+                <div class="list-item gap">
+                    <strong>{{ requirement.subject }}</strong>
+                    <p>{{ requirement.remaining_credits }} credits remaining</p>
+                </div>
+            {% endif %}
+        {% empty %}
+            <p>No district requirements found.</p>
+        {% endfor %}
+    </div>
+
+    <div class="panel chat-panel">
+        <div class="chat-header">
+            <h2>Hello, {{ student.firstName }}</h2>
+            <p>Ask about next classes, class-specific fit, or parent-friendly translations.</p>
+            {% if not ai_enabled %}<p class="hint">Offline mode: local recommendations and a limited set of translated summaries.</p>{% endif %}
+            <div class="quick-prompts">
+                <button type="button" data-prompt="What classes should I take next semester based on my transcript?">Next semester plan</button>
+                <button type="button" data-prompt="Which science courses can I take based on my completed prerequisites?">Science options</button>
+                <button type="button" data-prompt="Explain my progress for my parents in simple Spanish and define key school terms.">Parent translation</button>
+            </div>
+        </div>
+
+        <div class="messages" id="messages">
+            <div class="message assistant">
+                I can help with: course planning, class recommendations, district graduation progress,
+                and parent-friendly translations.
+            </div>
+        </div>
+
+        <form class="composer" id="chat-form">
+            {% csrf_token %}
+            <textarea id="message-input" aria-label="Your question" maxlength="2000" placeholder="Type your question..." required></textarea>
+            <button id="send-button" type="submit">Ask Advisor</button>
+        </form>
+        <p class="hint">Guidance support only. Confirm final scheduling with a school counselor.</p>
+    </div>
+</div>
+
+<script>
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return '';
+    }
+
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('message-input');
+    const messages = document.getElementById('messages');
+    const sendButton = document.getElementById('send-button');
+
+    function addMessage(role, text) {
+        const bubble = document.createElement('div');
+        bubble.className = `message ${role}`;
+        bubble.textContent = text;
+        messages.appendChild(bubble);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    async function sendMessage(text) {
+        addMessage('user', text);
+        sendButton.disabled = true;
+        addMessage('assistant', 'Analyzing your transcript and district options...');
+
+        try {
+            const response = await fetch("{% url 'ai_chatbot_message' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({message: text})
+            });
+            const data = await response.json();
+
+            const loadingBubble = messages.lastElementChild;
+            if (loadingBubble && loadingBubble.textContent.includes('Analyzing')) {
+                loadingBubble.remove();
+            }
+
+            if (!response.ok) {
+                addMessage('assistant', data.error || 'Unable to process your request.');
+            } else {
+                addMessage('assistant', data.response || 'No response generated.');
+                if (data.api_failed === true) {
+                    const notice = document.createElement('p');
+                    notice.className = 'hint api-failure-notice';
+                    notice.setAttribute('role', 'status');
+                    notice.textContent = 'AI service unavailable — showing local recommendations for this reply.';
+                    messages.appendChild(notice);
+                    messages.scrollTop = messages.scrollHeight;
+                }
+            }
+        } catch (e) {
+            const loadingBubble = messages.lastElementChild;
+            if (loadingBubble && loadingBubble.textContent.includes('Analyzing')) {
+                loadingBubble.remove();
+            }
+            addMessage('assistant', 'Network error. Please try again.');
+        } finally {
+            sendButton.disabled = false;
+            input.focus();
+        }
+    }
+
+    form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = '';
+        await sendMessage(text);
+    });
+
+    document.querySelectorAll('[data-prompt]').forEach((button) => {
+        button.addEventListener('click', async function () {
+            await sendMessage(button.getAttribute('data-prompt'));
+        });
+    });
+</script>
+</body>
+</html>

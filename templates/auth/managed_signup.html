@@ -1,0 +1,8 @@
+{% extends "auth/base.html" %}
+{% block title %}School-managed accounts | AtlasOne{% endblock %}
+{% block content %}
+    <h1>Connect with your school</h1>
+    <p>Parent and counselor accounts are created by school staff after verifying the relationship to a student or district.</p>
+    <p>If you already have an account, use the same sign-in page as students.</p>
+    <a class="button-link" href="{% url 'login' %}">Back to sign in</a>
+{% endblock %}

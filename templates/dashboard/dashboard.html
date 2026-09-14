@@ -1,0 +1,61 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Student dashboard | AtlasOne</title>
+    <link rel="icon" type="image/png" href="{% static 'AtlasOne-logo.png' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+<body>
+    <header class="navbar">
+        <div><div class="brand">AtlasOne</div><small>Academic planning</small></div>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Sign out</button></form>
+    </header>
+    <main>
+        {% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+        <div class="intro">
+            <div><h1>Welcome, {{ student.firstName }}</h1><span class="muted">Grade {{ student.gradeLevel }} &middot; {{ student.district.name }} &middot; Class of {{ student.graduationYear }}</span></div>
+            <span class="badge {% if not graduation_status.on_track %}warning{% endif %}">{{ graduation_status.status }} &middot; estimated</span>
+        </div>
+        <div class="grid">
+            <div>
+                <section class="card" aria-labelledby="progress-title">
+                    <h2 id="progress-title">Your graduation plan</h2>
+                    <p>{{ graduation_status.summary }}</p>
+                    <progress max="100" value="{{ graduation_status.completion_percent }}" aria-label="Graduation completion">{{ graduation_status.completion_percent }}%</progress>
+                    <div class="stats">
+                        <div><strong>{{ graduation_status.completion_percent }}%</strong><span class="muted">Completed</span></div>
+                        <div><strong>{{ graduation_status.minimum_courses_needed }}</strong><span class="muted">More courses estimated</span></div>
+                        <div><strong>{{ graduation_status.years_remaining }}</strong><span class="muted">School years remaining</span></div>
+                    </div>
+                    <p class="muted">Progress combines earned credits and completed core courses. Courses in progress count toward future planning, not completion.</p>
+                </section>
+                <section class="card" aria-labelledby="transcript-title">
+                    <h2 id="transcript-title">Transcript</h2>
+                    {% include "shared/transcript_table.html" %}
+                </section>
+            </div>
+            <aside>
+                <section class="card">
+                    <h2>Plan your next step</h2>
+                    {% if student.gradeLevel < 12 %}
+                    <a class="action" href="{% url 'next_year_planner' %}">Next-year planner<small>Compare courses and submit a request.</small></a>
+                    {% endif %}
+                    <a class="action" href="{% url 'student_messages' %}">Message counselor<small>Discuss prerequisites and scheduling.</small></a>
+                    <a class="action" href="{% url 'ai_chatbot' %}">Academic advisor<small>Explore recommendations from your records.</small></a>
+                </section>
+                <section class="card">
+                    <h2>About this estimate</h2>
+                    <p class="muted">The plan uses your district's catalog and a course-capacity estimate. Confirm graduation requirements and final scheduling with your counselor.</p>
+                    {% if off_track_ai_insight %}<p class="notice">{{ off_track_ai_insight }}</p>{% endif %}
+                    {% if not graduation_status.on_track %}
+                    <ul>{% for alert in graduation_status.alerts|slice:":5" %}<li>{{ alert }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </section>
+            </aside>
+        </div>
+    </main>
+</body>
+</html>

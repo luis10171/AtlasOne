@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Profile</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", sans-serif;
+            background: #f4f7fc;
+            color: #1b2b43;
+        }
+        .nav {
+            background: #0f3e60;
+            color: white;
+            padding: 15px 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 7px;
+            padding: 7px 12px;
+        }
+        .container {
+            max-width: 1180px;
+            margin: 20px auto;
+            padding: 0 16px 20px;
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            gap: 16px;
+        }
+        .card {
+            background: white;
+            border: 1px solid #d7e0ec;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border-bottom: 1px solid #e0e8f3;
+            text-align: left;
+            padding: 8px;
+            font-size: 14px;
+        }
+        .status {
+            text-transform: uppercase;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .pending { color: #8f6200; }
+        .approved { color: #1f6a34; }
+        .denied { color: #9a1d26; }
+        .msg {
+            border: 1px solid #dce3f0;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #fbfdff;
+        }
+        @media (max-width: 980px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <div>
+            <strong>Student Profile</strong><br>
+            <small>{{ student.firstName }} {{ student.lastName }}</small>
+        </div>
+        <div>
+            <a href="{% url 'counselor_dashboard' %}">Back to Dashboard</a>
+            <a href="{% url 'counselor_messages_with_student' student.id %}" style="margin-left:8px;">Open Messages</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h3>Profile Overview</h3>
+            <p><strong>Name:</strong> {{ student.firstName }} {{ student.lastName }}</p>
+            <p><strong>Username:</strong> {{ student.user.username }}</p>
+            <p><strong>Grade:</strong> {{ student.gradeLevel }}</p>
+            <p><strong>Graduation Year:</strong> {{ student.graduationYear }}</p>
+            <p><strong>District:</strong> {% if student.district %}{{ student.district.name }}{% else %}-{% endif %}</p>
+            <p><strong>GPA:</strong> {{ student.GPA }}</p>
+
+            {% if graduation_status %}
+                <h4>Graduation Status</h4>
+                <p><strong>{{ graduation_status.status }}</strong></p>
+                <p>{{ graduation_status.summary }}</p>
+                <p>Completion: {{ graduation_status.completion_percent }}%</p>
+            {% endif %}
+
+            <h3 style="margin-top:14px;">Transcript</h3>
+            <p>
+                <a href="{% url 'add_course' student.id %}">Add Course</a>
+            </p>
+            <table>
+                <tr>
+                    <th>Course</th>
+                    <th>Grade</th>
+                    <th>Credits</th>
+                    <th>Grade Taken</th>
+                </tr>
+                {% for entry in transcript_entries %}
+                    <tr>
+                        <td>{{ entry.course.name }}</td>
+                        <td>{% if entry.grade == 0 and entry.creditsEarned == 0 and entry.gradeTaken == student.gradeLevel %}In progress{% else %}{{ entry.grade }}{% endif %}</td>
+                        <td>{{ entry.creditsEarned }}</td>
+                        <td>{{ entry.gradeTaken }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4">No transcript entries yet.</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div class="card">
+            <h3>Course Requests</h3>
+            {% for request_item in course_requests %}
+                <div class="msg">
+                    <strong>{{ request_item.course.name }}</strong> ({{ request_item.course.subject.name }})<br>
+                    <span class="status {{ request_item.status }}">{{ request_item.get_status_display }}</span>
+                    <small> | Planned for grade {{ request_item.requested_for_grade }}</small><br>
+                    {% if request_item.student_note %}
+                        <small>Student note: {{ request_item.student_note }}</small><br>
+                    {% endif %}
+                    {% if request_item.counselor_note %}
+                        <small>Counselor note: {{ request_item.counselor_note }}</small><br>
+                    {% endif %}
+                    {% if request_item.status == "pending" %}
+                        <form method="POST" action="{% url 'review_course_request' request_item.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{% url 'counselor_student_profile' student.id %}">
+                            <textarea name="counselor_note" rows="2" style="width:100%;margin-top:8px;" placeholder="Optional note"></textarea>
+                            <button type="submit" name="decision" value="approve">Approve</button>
+                            <button type="submit" name="decision" value="deny">Deny</button>
+                        </form>
+                    {% endif %}
+                </div>
+            {% empty %}
+                <p>No course requests submitted yet.</p>
+            {% endfor %}
+
+            <h3 style="margin-top:14px;">Recent Messages</h3>
+            {% for message in recent_messages %}
+                <div class="msg">
+                    <strong>{{ message.sender.username }}</strong><br>
+                    {{ message.body }}<br>
+                    <small>{{ message.created_at }}</small>
+                </div>
+            {% empty %}
+                <p>No messages yet in this thread.</p>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

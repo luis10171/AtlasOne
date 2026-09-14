@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parent AI Assistant</title>
+    <style>
+        :root {
+            --bg: #f2f6fb;
+            --panel: #ffffff;
+            --ink: #1a2c46;
+            --accent: #15556f;
+            --line: #d7e1ef;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: "Segoe UI", sans-serif;
+        }
+        .nav {
+            background: var(--accent);
+            color: #fff;
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav a {
+            color: #fff;
+            text-decoration: none;
+            border: 1px solid rgba(255,255,255,.65);
+            padding: 7px 10px;
+            border-radius: 8px;
+            margin-left: 8px;
+        }
+        .layout {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 16px 20px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 16px;
+        }
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            box-shadow: 0 6px 16px rgba(0,0,0,.05);
+        }
+        .sidebar {
+            padding: 14px;
+        }
+        .sidebar a {
+            display: block;
+            border: 1px solid #dce5f2;
+            border-radius: 8px;
+            padding: 9px;
+            margin-bottom: 10px;
+            text-decoration: none;
+            color: var(--ink);
+        }
+        .sidebar a.active {
+            background: #edf3ff;
+            border-color: #b9cced;
+        }
+        .chat-wrap {
+            display: flex;
+            flex-direction: column;
+            min-height: 640px;
+        }
+        .chat-header {
+            padding: 14px;
+            border-bottom: 1px solid var(--line);
+        }
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .controls label {
+            font-size: 14px;
+        }
+        .controls select {
+            border: 1px solid #c0cee3;
+            border-radius: 7px;
+            padding: 6px;
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px;
+            background: #f9fbff;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .msg {
+            max-width: 84%;
+            border: 1px solid #d7e2f2;
+            border-radius: 10px;
+            padding: 9px 11px;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+        .msg.user {
+            margin-left: auto;
+            background: #e2eeff;
+            border-color: #c4d7ff;
+        }
+        .msg.ai {
+            background: #ffffff;
+        }
+        .composer {
+            border-top: 1px solid var(--line);
+            padding: 12px;
+            display: flex;
+            gap: 10px;
+        }
+        .composer textarea {
+            flex: 1;
+            min-height: 56px;
+            border: 1px solid #c2cfe4;
+            border-radius: 8px;
+            padding: 9px;
+            font-family: inherit;
+        }
+        .composer button {
+            width: 120px;
+            border: none;
+            border-radius: 8px;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .hint {
+            font-size: 12px;
+            color: #52627d;
+            margin: 0 12px 12px;
+        }
+        @media (max-width: 960px) {
+            .layout { grid-template-columns: 1fr; }
+            .chat-wrap { min-height: 560px; }
+            .msg { max-width: 92%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <strong>Parent AI Assistant</strong>
+        <div>
+            <a href="{% url 'parent_dashboard' %}">Back to Parent Dashboard</a>
+            <a href="{% url 'parent_messages' %}">Message Counselor</a>
+        </div>
+    </div>
+    <div class="layout">
+        <div class="panel sidebar">
+            <h3>Choose Student</h3>
+            {% for student in students %}
+                <a href="{% url 'parent_ai_chatbot_with_student' student.id %}" class="{% if selected_student and selected_student.id == student.id %}active{% endif %}">
+                    <strong>{{ student.firstName }} {{ student.lastName }}</strong><br>
+                    <small>Grade {{ student.gradeLevel }}</small>
+                </a>
+            {% empty %}
+                <p>No linked students.</p>
+            {% endfor %}
+
+            {% if snapshot %}
+                <h3>Quick Snapshot</h3>
+                <p><strong>Status:</strong> {{ snapshot.graduation_status.status }}</p>
+                <p><strong>Completion:</strong> {{ snapshot.graduation_status.completion_percent }}%</p>
+                <p><strong>District:</strong> {{ snapshot.student_profile.district }}</p>
+            {% endif %}
+        </div>
+
+        <div class="panel chat-wrap">
+            <div class="chat-header">
+                {% if selected_student %}
+                    <h2 style="margin:0;">{{ selected_student.firstName }} {{ selected_student.lastName }}</h2>
+                    <p style="margin:6px 0 0;">Explore your student's progress and next steps.</p>
+                    {% if not ai_enabled %}<p class="hint">Offline mode: local recommendations and a limited set of translated summaries. Speech is disabled.</p>{% endif %}
+                    {% if ai_enabled %}
+                    <div class="controls">
+                        <label><input id="tts-enabled" type="checkbox"> Read responses out loud</label>
+                        <label for="voice-select">Voice:</label>
+                        <select id="voice-select">
+                            {% for voice in tts_voice_options %}
+                                <option value="{{ voice }}">{{ voice }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <h2 style="margin:0;">No student selected</h2>
+                {% endif %}
+            </div>
+            <div class="messages" id="messages">
+                <div class="msg ai">
+                    Ask about graduation requirements or the suggested courses in your student's record.
+                </div>
+            </div>
+            <form class="composer" id="chat-form">
+                {% csrf_token %}
+                <textarea id="message-input" aria-label="Your question" maxlength="2000" placeholder="Type your question..." {% if not snapshot %}disabled{% endif %}></textarea>
+                <button id="send-button" type="submit" {% if not snapshot %}disabled{% endif %}>Ask advisor</button>
+            </form>
+            <p class="hint">This tool supports family understanding. Final schedule and policy decisions should be confirmed with the school's guidance counselor.</p>
+        </div>
+    </div>
+
+    {{ selected_student.id|default:None|json_script:"student-id" }}
+    <script>
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return '';
+        }
+
+        const form = document.getElementById('chat-form');
+        const input = document.getElementById('message-input');
+        const messages = document.getElementById('messages');
+        const sendButton = document.getElementById('send-button');
+        const ttsEnabled = document.getElementById('tts-enabled');
+        const voiceSelect = document.getElementById('voice-select');
+        const studentId = JSON.parse(document.getElementById('student-id').textContent);
+
+        function addMessage(role, text) {
+            const bubble = document.createElement('div');
+            bubble.className = `msg ${role}`;
+            bubble.textContent = text;
+            messages.appendChild(bubble);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        async function sendMessage(text) {
+            addMessage('user', text);
+            sendButton.disabled = true;
+            addMessage('ai', 'Thinking...');
+            try {
+                const response = await fetch("{% url 'parent_ai_chatbot_message' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        message: text,
+                        student_id: studentId,
+                        enable_tts: ttsEnabled ? ttsEnabled.checked : false,
+                        voice_name: voiceSelect ? voiceSelect.value : 'Kore'
+                    })
+                });
+                const data = await response.json();
+                const loadingBubble = messages.lastElementChild;
+                if (loadingBubble && loadingBubble.textContent === 'Thinking...') {
+                    loadingBubble.remove();
+                }
+
+                if (!response.ok) {
+                    addMessage('ai', data.error || 'Unable to process your request.');
+                    return;
+                }
+
+                addMessage('ai', data.response || 'No response generated.');
+                if (data.api_failed === true) {
+                    const notice = document.createElement('p');
+                    notice.className = 'hint api-failure-notice';
+                    notice.setAttribute('role', 'status');
+                    notice.textContent = 'AI service unavailable — showing local recommendations for this reply.';
+                    messages.appendChild(notice);
+                    messages.scrollTop = messages.scrollHeight;
+                }
+
+                if (data.audio_base64 && data.audio_mime_type) {
+                    const audio = new Audio(`data:${data.audio_mime_type};base64,${data.audio_base64}`);
+                    try {
+                        await audio.play();
+                    } catch (err) {
+                        addMessage('ai', 'Audio playback is blocked by browser settings. You can enable autoplay or click play when prompted.');
+                    }
+                } else if (data.tts_error && ttsEnabled && ttsEnabled.checked) {
+                    addMessage('ai', `Audio unavailable: ${data.tts_error}`);
+                }
+            } catch (error) {
+                const loadingBubble = messages.lastElementChild;
+                if (loadingBubble && loadingBubble.textContent === 'Thinking...') {
+                    loadingBubble.remove();
+                }
+                addMessage('ai', 'Network error. Please try again.');
+            } finally {
+                sendButton.disabled = false;
+                input.focus();
+            }
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const text = input.value.trim();
+            if (!text || !studentId) {
+                return;
+            }
+            input.value = '';
+            await sendMessage(text);
+        });
+    </script>
+</body>
+</html>

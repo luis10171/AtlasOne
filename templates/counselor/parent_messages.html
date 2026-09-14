@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Counselor Parent Messages</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", sans-serif;
+            background: #f3f7fc;
+        }
+        .nav {
+            background: #0f3e60;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 22px;
+        }
+        .nav a {
+            color: white;
+            text-decoration: none;
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            border-radius: 7px;
+            padding: 7px 11px;
+        }
+        .layout {
+            max-width: 1120px;
+            margin: 20px auto;
+            padding: 0 16px 20px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 15px;
+        }
+        .panel {
+            background: white;
+            border: 1px solid #d7e1ef;
+            border-radius: 10px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+        }
+        .threads {
+            padding: 14px;
+        }
+        .threads a {
+            display: block;
+            border: 1px solid #dce4f1;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            text-decoration: none;
+            color: #1b2c45;
+        }
+        .threads a.active {
+            background: #ebf3ff;
+            border-color: #bdd0ee;
+        }
+        .chat {
+            display: flex;
+            flex-direction: column;
+            min-height: 620px;
+        }
+        .chat-header {
+            padding: 14px;
+            border-bottom: 1px solid #dee6f2;
+        }
+        .chat-body {
+            flex: 1;
+            overflow-y: auto;
+            background: #f9fbff;
+            padding: 14px;
+        }
+        .msg {
+            border: 1px solid #d9e2ef;
+            border-radius: 8px;
+            padding: 9px 11px;
+            margin-bottom: 9px;
+            max-width: 85%;
+            white-space: pre-wrap;
+        }
+        .mine {
+            margin-left: auto;
+            background: #e1ecff;
+            border-color: #c3d8ff;
+        }
+        .composer {
+            border-top: 1px solid #dee6f2;
+            padding: 12px;
+        }
+        textarea {
+            width: 100%;
+            border: 1px solid #becce0;
+            border-radius: 7px;
+            padding: 10px;
+            font-family: inherit;
+            margin-bottom: 8px;
+        }
+        button {
+            background: #0f3e60;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            padding: 9px 14px;
+            cursor: pointer;
+        }
+        .alert {
+            background: #fdecea;
+            color: #611a15;
+            border: 1px solid #f5c6cb;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <strong>Parent-Counselor Messaging</strong>
+        <a href="{% url 'counselor_dashboard' %}">Back to Dashboard</a>
+    </div>
+
+    <div class="layout">
+        <div class="panel threads">
+            <h3>Parent Threads</h3>
+            {% for thread in conversations %}
+                <a href="{% url 'counselor_parent_messages_with_conversation' thread.id %}" class="{% if selected_conversation and selected_conversation.id == thread.id %}active{% endif %}">
+                    <strong>{{ thread.parent.firstName }} {{ thread.parent.lastName }}</strong><br>
+                    <small>Student: {{ thread.student.firstName }} {{ thread.student.lastName }}</small><br>
+                    <small>Updated: {{ thread.updated_at }}</small>
+                </a>
+            {% empty %}
+                <p>No parent threads yet.</p>
+            {% endfor %}
+        </div>
+
+        <div class="panel chat">
+            <div class="chat-header">
+                {% if selected_conversation %}
+                    <h3 style="margin:0;">{{ selected_conversation.parent.firstName }} {{ selected_conversation.parent.lastName }}</h3>
+                    <small>Student: {{ selected_conversation.student.firstName }} {{ selected_conversation.student.lastName }}</small>
+                {% else %}
+                    <h3 style="margin:0;">No thread selected</h3>
+                {% endif %}
+            </div>
+            <div class="chat-body">
+                {% for message in conversation_messages %}
+                    <div class="msg {% if message.sender_id == counselor.user_id %}mine{% endif %}">
+                        <strong>{{ message.sender.username }}</strong><br>
+                        {{ message.body }}<br>
+                        <small>{{ message.created_at }}</small>
+                    </div>
+                {% empty %}
+                    <p>No messages yet.</p>
+                {% endfor %}
+            </div>
+            <div class="composer">
+                {% if selected_conversation %}
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="conversation_id" value="{{ selected_conversation.id }}">
+                        {{ form.body }}
+                        {% if form.errors %}
+                            <div class="alert">{{ form.errors|striptags }}</div>
+                        {% endif %}
+                        <button type="submit">Send Message</button>
+                    </form>
+                {% else %}
+                    <p>Select a thread to send a message.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

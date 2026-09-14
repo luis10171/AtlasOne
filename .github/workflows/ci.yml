@@ -1,0 +1,67 @@
+name: Checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 9 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python: ["3.12", "3.14"]
+    env:
+      DJANGO_DEBUG: "True"
+      DJANGO_SECRET_KEY: "ci-only-disposable-key-abcdefghijklmnopqrstuvwxyz-0123456789"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,testserver"
+      DJANGO_DATABASE_PATH: "demo.sqlite3"
+      AI_ENABLED: "False"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            constraints.txt
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Lint and formatting
+        run: |
+          python -m ruff check .
+          python -m ruff format --check .
+      - name: Django checks and migration drift
+        run: |
+          python manage.py check
+          python manage.py makemigrations --check --dry-run
+      - name: Test with coverage
+        run: |
+          python -m coverage run manage.py test
+          python -m coverage report
+      - name: Reproduce the demo from an empty database
+        run: |
+          python manage.py migrate --noinput
+          python manage.py seed_demo
+          python manage.py seed_demo
+          python manage.py collectstatic --noinput
+      - name: Production settings checks
+        env:
+          DJANGO_DEBUG: "False"
+          DJANGO_HSTS_INCLUDE_SUBDOMAINS: "True"
+          DJANGO_HSTS_PRELOAD: "True"
+        run: python manage.py check --deploy --fail-level WARNING
+      - name: Dependency vulnerability audit
+        run: python -m pip_audit --local
+      - name: Check files intended for publication
+        run: python scripts/check_publication.py --tracked

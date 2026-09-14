@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parent Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", sans-serif;
+            background: #f2f6fb;
+            color: #1a2a42;
+        }
+        .nav {
+            background: #15556f;
+            color: #fff;
+            padding: 16px 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav a, .nav button {
+            color: #15556f;
+            background: #fff;
+            border: none;
+            border-radius: 7px;
+            padding: 8px 12px;
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .container {
+            max-width: 1220px;
+            margin: 20px auto;
+            padding: 0 16px 22px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 14px;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid #d7e1ee;
+            border-radius: 10px;
+            padding: 14px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+        }
+        .student-link {
+            display: block;
+            border: 1px solid #dce5f2;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            color: #1a2a42;
+            text-decoration: none;
+        }
+        .student-link.active {
+            border-color: #9db9e7;
+            background: #edf3ff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border-bottom: 1px solid #e2e8f3;
+            text-align: left;
+            padding: 8px;
+            font-size: 14px;
+        }
+        .status {
+            text-transform: uppercase;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .pending { color: #876005; }
+        .approved { color: #1f6a34; }
+        .denied { color: #9a1d26; }
+        @media (max-width: 980px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <div>
+            <strong>Parent Dashboard</strong><br>
+            <small>{{ parent.firstName }} {{ parent.lastName }}</small>
+        </div>
+        <div>
+            <a href="{% url 'parent_messages' %}">Message Counselor</a>
+            <a href="{% url 'parent_ai_chatbot' %}">Parent AI Assistant</a>
+            <form method="POST" action="{% url 'logout' %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit">Logout</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h3>Linked Students</h3>
+            {% for student in students %}
+                <a class="student-link {% if selected_student and selected_student.id == student.id %}active{% endif %}" href="{% url 'parent_dashboard' %}?student={{ student.id }}">
+                    <strong>{{ student.firstName }} {{ student.lastName }}</strong><br>
+                    <small>Grade {{ student.gradeLevel }} | {% if student.district %}{{ student.district.name }}{% else %}No district{% endif %}</small>
+                </a>
+            {% empty %}
+                <p>No linked students. Ask school staff to link your account.</p>
+            {% endfor %}
+        </div>
+
+        <div class="card">
+            {% if selected_student %}
+                <h2>{{ selected_student.firstName }} {{ selected_student.lastName }}</h2>
+                <p>
+                    <strong>Grade:</strong> {{ selected_student.gradeLevel }} |
+                    <strong>Graduation Year:</strong> {{ selected_student.graduationYear }} |
+                    <strong>GPA:</strong> {{ selected_student.GPA }}
+                </p>
+                <p>
+                    <strong>Assigned Counselor:</strong>
+                    {% if selected_student.assignedCounselor %}
+                        {{ selected_student.assignedCounselor.firstName }} {{ selected_student.assignedCounselor.lastName }}
+                    {% else %}
+                        Not assigned
+                    {% endif %}
+                </p>
+
+                {% if graduation_status %}
+                    <h3>Graduation Progress</h3>
+                    <p><strong>Status:</strong> {{ graduation_status.status }}</p>
+                    <p>{{ graduation_status.summary }}</p>
+                    <p><strong>Completion:</strong> {{ graduation_status.completion_percent }}%</p>
+                {% endif %}
+
+                <h3>Transcript</h3>
+                <table>
+                    <tr>
+                        <th>Course</th>
+                        <th>Grade</th>
+                        <th>Credits</th>
+                        <th>Grade Taken</th>
+                    </tr>
+                    {% for entry in transcript_entries %}
+                        <tr>
+                            <td>{{ entry.course.name }}</td>
+                            <td>{% if entry.grade == 0 and entry.creditsEarned == 0 and entry.gradeTaken == selected_student.gradeLevel %}In progress{% else %}{{ entry.grade }}{% endif %}</td>
+                            <td>{{ entry.creditsEarned }}</td>
+                            <td>{{ entry.gradeTaken }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4">No transcript entries yet.</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+
+                <h3 style="margin-top:14px;">Course Requests</h3>
+                <table>
+                    <tr>
+                        <th>Course</th>
+                        <th>Planned Grade</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                    </tr>
+                    {% for request_item in course_requests %}
+                        <tr>
+                            <td>{{ request_item.course.name }}</td>
+                            <td>{{ request_item.requested_for_grade }}</td>
+                            <td><span class="status {{ request_item.status }}">{{ request_item.get_status_display }}</span></td>
+                            <td>
+                                {% if request_item.student_note %}Student: {{ request_item.student_note }}{% endif %}
+                                {% if request_item.counselor_note %}<br>Counselor: {{ request_item.counselor_note }}{% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4">No course requests yet.</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% else %}
+                <h3>Select a linked student to view profile details.</h3>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
