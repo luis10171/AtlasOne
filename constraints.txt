@@ -1,7 +1,7 @@
 # Runtime dependency versions verified on 2026-09-11.
 asgiref==3.12.1
 cffi==2.1.1
-charset-normalizer==3.5.1
+charset-normalizer==3.5.2
 cryptography==50.0.1
 Django==6.0.8
 pdfminer.six==20260107
