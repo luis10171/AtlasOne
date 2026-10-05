@@ -9,6 +9,6 @@ pdfplumber==0.11.10
 Pillow==12.3.0
 pycparser==3.0
 pypdfium2==5.13.0
-python-dotenv==1.2.3
+python-dotenv==1.2.4
 sqlparse==0.6.0
 tzdata==2026.3
